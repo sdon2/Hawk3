@@ -6,6 +6,7 @@ import ConfigParser
 from time import sleep
 import wx
 import threading
+import random
 
 class myThread(threading.Thread): #separate worker thread for unblocked ui
     
@@ -20,6 +21,18 @@ class myThread(threading.Thread): #separate worker thread for unblocked ui
             
     def log(self, message):
         self.appObj.tc4.AppendText(message)
+        
+    def sleep(self, min_sleep, max_sleep):
+        sleep_secs = 0
+        
+        if min_sleep == max_sleep:
+            sleep_secs = min_sleep
+        else:
+            sleep_secs = random.randint(min_sleep, max_sleep)
+            
+        if sleep_secs > 0:
+            self.log("\nSleeping for {0} seconds".format(sleep_secs))
+            sleep(sleep_secs)
 
     def run(self):
         if self.Terminate: return
@@ -41,16 +54,18 @@ class myThread(threading.Thread): #separate worker thread for unblocked ui
                 self.log('\nAttempting to Login...')
                 
                 login = dict(config.items('Login'))
+                
                 exec "import " + login['module'] #import login module
                 exec "cookies = " + login['function'] #function returns auth cookies in login module
                 
                 if not cookies:
                     self.log("\nERROR: Login failed.. Exiting..")
+                    self.reset();
                     return
                 else:
                     self.log('\nSuccessfully logged in.. \nCookie:' + str(cookies))
                                 
-            headers["User-Agent"] = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1312.60 Safari/537.17"
+            headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36"
             
             self.log("\nReading source file for keys..")
             src_wb = load_workbook(filename=self.appObj.tc2.Value, read_only=True) #load excel workbook
@@ -109,25 +124,23 @@ class myThread(threading.Thread): #separate worker thread for unblocked ui
                     
                 dest_wb.save(self.appObj.tc3.Value)
                 
-                sleep(int(main['sleep'])) #wait for n mseconds
+                self.sleep(int(main['min_sleep']), int(main['max_sleep'])) #wait for min: n and max: n mseconds
 
             self.log("\n\nAll right.. Everything went smoothly.. Exiting.. Bye!") #completed
-            self.appObj.button1.Enable()
-            self.appObj.button2.Enable()
-            self.appObj.button3.Enable()
-            self.appObj.button4.Enable()
-            self.appObj.button5.Disable()
-            self.appObj.button6.Enable()
+            self.reset();
         
         except:
             self.log("\n\n--------------------Error------------------------")
             wx.MessageBox(str(sys.exc_value) + " in Line no: " + str(sys.exc_traceback.tb_lineno), 'Error', wx.OK | wx.ICON_ERROR)
-            self.appObj.button1.Enable()
-            self.appObj.button2.Enable()
-            self.appObj.button3.Enable()
-            self.appObj.button4.Enable()
-            self.appObj.button5.Disable()
-            self.appObj.button6.Enable()
+            self.reset()
+            
+    def reset(self):
+        self.appObj.button1.Enable()
+        self.appObj.button2.Enable()
+        self.appObj.button3.Enable()
+        self.appObj.button4.Enable()
+        self.appObj.button5.Disable()
+        self.appObj.button6.Enable()
 
 class Hawk(wx.Frame):
     
@@ -147,7 +160,7 @@ class Hawk(wx.Frame):
         text1 = wx.StaticText(panel, label="Python Tool for Websites <saravanakumar.a.o@gmail.com>\n\nCreated by Saravanakumar Arumugam")
         sizer.Add(text1, pos=(0, 0), span=(0, 3), flag=wx.TOP|wx.LEFT|wx.BOTTOM|wx.EXPAND, border=15)
         
-        icon = wx.StaticBitmap(panel, label=wx.Bitmap(self.application_path + '/Hawk.png'))
+        icon = wx.StaticBitmap(panel, -1, wx.Bitmap(self.application_path + '/Hawk.png'))
         sizer.Add(icon, pos=(0, 4), flag=wx.TOP|wx.RIGHT|wx.ALIGN_RIGHT, border=5)
         
         line = wx.StaticLine(panel)
